@@ -1,7 +1,8 @@
-django-teamgroups
-===================
+==========
+Teamgroups
+==========
 
-django-teamgroups is a simple Django app to enable sites to have teams of users.
+Teamgroups is a simple Django app to enable sites to have teams of users.
 
 Detailed documentation is in the "docs" directory.
 

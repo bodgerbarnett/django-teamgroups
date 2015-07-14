@@ -1,35 +1,11 @@
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-
-{% block title %}
-    {{ teamgroup.name }}
-{% endblock title %}
+{% extends "teamgroups/base.html" %}
 
 {% block content %}
-    {% crispy form %}
+    <h1>{{ teamgroup.name|default:"Create Teamgroup" }}</h1>
+
+    <form method="post" action=".">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% if teamgroup.name %}Update{%else %}Create{% endif %}</button>
+    </form>
 {% endblock content %}
-
-{% block javascript %}
-    <script type="text/javascript">
-        var teamgroup_names = [];
-
-        {% for teamgroup in teamgroups %}
-            {% if teamgroup and teamgroup.name != teamgroup.name %}
-                teamgroup_names.push('{{ teamgroup.name }}');
-            {% endif %}
-        {% endfor %}
-
-        $('#div_id_name').append('<span id="id_invalid_name" class="glyphicon glyphicon-remove center text-danger" aria-hidden="true"></span>');
-        $('#id_invalid_name').hide();
-
-        $("#id_name").keyup(function() {
-            if (teamgroup_names.indexOf($('#id_name').val()) > -1) {
-                $('#div_id_name').addClass('has-error');
-                $('#id_invalid_name').show();
-            } else {
-                $('#div_id_name').removeClass('has-error');
-                $('#id_invalid_name').hide();
-            }
-        });
-    </script>
-{% endblock javascript %}
