@@ -1,4 +1,4 @@
-# django-teamgroups
+django-teamgroups
 ===================
 
 django-teamgroups is a simple Django app to enable sites to have teams of users.
