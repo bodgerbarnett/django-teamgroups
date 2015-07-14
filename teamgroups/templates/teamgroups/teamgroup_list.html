@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}
+    My teamgroups
+{% endblock title %}
+
+{% block content %}
+    <h1>My teamgroups</h1>
+
+    {% if teamgroups %}
+        <ul id="id_teamgroups_list">
+            {% for teamgroup in teamgroups %}
+                <li><a href="{% url 'view_teamgroup' teamgroup.slug %}">{{ teamgroup.name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You do not have any teamgroups yet.</p>
+    {% endif %}
+
+    <a href="{% url 'create_teamgroup' %}" class="btn btn-primary">Create teamgroup</a>
+{% endblock content %}

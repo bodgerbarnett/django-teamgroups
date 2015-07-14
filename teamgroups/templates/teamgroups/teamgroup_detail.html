@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load guardian_tags %}
+
+{% block title %}
+    {{ teamgroupgroup.name }}
+{% endblock title %}
+
+{% block content %}
+    <h1>{{ teamgroupgroup.name }}</h1>
+
+    <h2>Members</h2>
+
+    <ul id="id_teamgroupgroup_members" class="list-group">
+        {% for member in teamgroupgroup.active_members %}
+            <li class="list-group-item clearfix">
+                <span class="teamgroupgroup_member {% if member != request.user %}has_actions{% endif %}">
+                    {{ member.get_full_name }}
+                    <small>({{ member.email }})</small>
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <a id="id_invite" href="{% url 'send_invitation' teamgroupgroup.slug %}" type="button" class="btn btn-success">Invite Members</a>
+
+    {% get_obj_perms request.user for teamgroupgroup as 'teamgroups_perms' %}
+
+    {% if 'change_teamgroup' in teamgroups_perms %}
+        <a href="{% url 'edit_teamgroup' teamgroup.slug %}" type="button" class="btn btn-primary">Edit teamgroup</a>
+    {% endif %}
+
+    {% if 'delete_teamgroup' in teamgroups_perms %}
+        <button id="id_delete_teamgroup" type="button" class="btn btn-danger" data-toggle="modal" data-target="#delete_teamgroup_modal">
+            Delete teamgroup
+        </button>
+
+        <div class="modal fade" id="delete_teamgroup_modal" tabindex="-1" role="dialog" aria-labelledby="delete_label">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="delete_label">Delete teamgroup</h4>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete {{ teamgroup.name }}?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button id="id_confirm_delete" type="button" class="btn btn-danger">DELETE</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <a href="{% url 'leave_teamgroup' teamgroup.slug %}" type="button" class="btn btn-danger">Leave teamgroup</a>
+</div>
+{% endblock content %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        {% get_obj_perms request.user for teamgroup as 'teamgroups_perms' %}
+
+        {% if 'delete_teamgroup' in teamgroups_perms %}
+            $('#id_confirm_delete').click(function() {
+                $.post("{% url 'delete_teamgroup' teamgroup.slug %}", {'csrfmiddlewaretoken': '{{ csrf_token }}'}, function(data) {
+                    window.location = "{% url 'list_teamgroups' %}"
+                });
+
+                $('#delete_teamgroup_modal').modal('hide');
+            });
+        {% endif %}
+    </script>
+{% endblock javascript %}
