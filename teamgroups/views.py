@@ -70,13 +70,11 @@ class TeamGroupDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteVi
     raise_exception = True
 
 
-class TeamGroupLeaveView(PermissionRequiredMixin, SuccessMessageMixin, RedirectView):
+class TeamGroupLeaveView(SuccessMessageMixin, RedirectView):
     model = TeamGroup
     url = reverse_lazy('list_teamgroups')
     permanent = False
     success_message = 'You have been removed from %(name)s'
-    permission_required = 'teamgroups.leave_teamgroup'
-    raise_exception = True
 
     def get(self, request, *args, **kwargs):
         membership = TeamGroupMembership.objects.get(

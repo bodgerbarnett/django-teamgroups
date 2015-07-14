@@ -24,7 +24,6 @@ class TeamGroup(models.Model):
     class Meta:
         permissions = (
             ('view_teamgroup', 'Can view teamgroup'),
-            ('leave_teamgroup', 'Can leave teamgroup'),
         )
 
     def __unicode__(self):
@@ -76,8 +75,6 @@ class TeamGroupMembership(models.Model):
             if self.role == self.ROLE_OWNER:
                 assign_perm('change_teamgroup', self.member, self.teamgroup)
                 assign_perm('delete_teamgroup', self.member, self.teamgroup)
-            else:
-                assign_perm('leave_teamgroup', self.member, self.teamgroup)
 
         super(TeamGroupMembership, self).save(*args, **kwargs)
 

@@ -1,0 +1,19 @@
+{% extends "teamgroups/base.html" %}
+
+{% block content %}
+    <h1>Invitations</h1>
+
+    <ul>
+        {% for invitation in invitations %}
+            <li>
+                <span>{{ invitation }}</span>
+                <a href="{% url 'delete_invitation' invitation.key %}">Delete</a>
+                <a href="{% url 'accept_invitation' invitation.key %}">Accept</a>
+            </li>
+        {% empty %}
+            <p>
+                You do not have any invitations yet.
+            </p>
+        {% endfor %}
+    </ul>
+{% endblock content %}
