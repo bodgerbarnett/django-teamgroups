@@ -38,7 +38,7 @@ class TeamGroupInvitationSendForm(forms.Form):
     def clean_email(self):
         email = self.cleaned_data['email']
 
-        if TeamGroupInvitation.objects.filter(accepted=False, email__iexact=email):
+        if TeamGroupInvitation.objects.filter(teamgroup=self.teamgroup, accepted=False, email__iexact=email):
             raise forms.ValidationError(
                 '%(user)s has already been invited to %(teamgroup)s',
                 params={'user': email, 'teamgroup': self.teamgroup})

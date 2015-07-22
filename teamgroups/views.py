@@ -1,13 +1,9 @@
-import json
-
 from django.views.generic import (
     ListView, CreateView, UpdateView, DetailView, DeleteView, RedirectView)
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
-from django.core.urlresolvers import reverse_lazy
-from django.http import HttpResponse
+from django.core.urlresolvers import reverse_lazy, reverse
 from django.views.generic import FormView
-from django.core.urlresolvers import reverse
 from django.contrib import messages
 
 from guardian.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -37,7 +33,9 @@ class TeamGroupCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
         return super(TeamGroupCreateView, self).form_valid(form)
 
 
-class TeamGroupUpdateView(PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
+class TeamGroupUpdateView(
+    PermissionRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = TeamGroup
     form_class = TeamGroupUpdateForm
     success_message = '%(name)s updated successfully'
@@ -51,8 +49,9 @@ class TeamGroupListView(LoginRequiredMixin, ListView):
     template_name = 'teamgroups/teamgroup_list.html'
 
     def get_queryset(self):
-        return [t.teamgroup for t in self.request.user.teamgroupmembership_set.filter(
-            active=True)]
+        return [t.teamgroup for t in
+                self.request.user.teamgroupmembership_set.filter(
+                    active=True)]
 
 
 class TeamGroupDetailView(PermissionRequiredMixin, DetailView):
@@ -62,7 +61,9 @@ class TeamGroupDetailView(PermissionRequiredMixin, DetailView):
     raise_exception = True
 
 
-class TeamGroupDeleteView(PermissionRequiredMixin, SuccessMessageMixin, DeleteView):
+class TeamGroupDeleteView(
+    PermissionRequiredMixin, SuccessMessageMixin, DeleteView
+):
     model = TeamGroup
     success_url = reverse_lazy('list_teamgroups')
     success_message = '%(name)s has been deleted'
@@ -88,7 +89,9 @@ class TeamGroupLeaveView(SuccessMessageMixin, RedirectView):
         return TeamGroup.objects.get(slug=self.kwargs['slug'])
 
 
-class TeamGroupInvitationSendView(PermissionRequiredMixin, SuccessMessageMixin, FormView):
+class TeamGroupInvitationSendView(
+    PermissionRequiredMixin, SuccessMessageMixin, FormView
+):
     model = TeamGroupInvitation
     form_class = TeamGroupInvitationSendForm
     template_name = 'teamgroups/teamgroupinvitation_form.html'
@@ -111,6 +114,18 @@ class TeamGroupInvitationSendView(PermissionRequiredMixin, SuccessMessageMixin, 
 
     def get_success_url(self):
         return reverse('view_teamgroup', kwargs=self.kwargs)
+
+
+class TeamGroupInvitationResendView(
+    LoginRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = TeamGroupInvitation
+    fields = ['email']
+
+    def post(self, request, *args, **kwargs):
+        invitation = self.get_object()
+        invitation.send()
+        return super(TeamGroupInvitationResendView, self).post(request, *args, **kwargs)
 
 
 class TeamGroupInvitationAcceptView(RedirectView):
@@ -159,9 +174,5 @@ class TeamGroupInvitationListView(LoginRequiredMixin, ListView):
 
 class TeamGroupInvitationDeleteView(LoginRequiredMixin, DeleteView):
     model = TeamGroupInvitation
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-        return HttpResponse(json.dumps(TeamGroupInvitation.objects.filter(
-            accepted=False, email=self.request.user.email).count()))
+    success_url = reverse_lazy('list_invitations')
+    success_message = 'Invitation deleted'

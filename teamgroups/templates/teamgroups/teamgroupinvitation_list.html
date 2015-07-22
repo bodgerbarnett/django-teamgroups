@@ -7,7 +7,7 @@
         {% for invitation in invitations %}
             <li>
                 <span>{{ invitation }}</span>
-                <a href="{% url 'delete_invitation' invitation.key %}">Delete</a>
+                <a href="{% url 'delete_invitation' invitation.id %}">Delete</a>
                 <a href="{% url 'accept_invitation' invitation.key %}">Accept</a>
             </li>
         {% empty %}

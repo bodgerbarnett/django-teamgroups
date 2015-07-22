@@ -45,6 +45,9 @@ class TeamGroup(models.Model):
     def active_members(self):
         return self.members.filter(teamgroupmembership__active=True)
 
+    def member_role(self, user):
+        return TeamGroupMembership.objects.get(teamgroup=self, member=user).role
+
 
 class TeamGroupMembership(models.Model):
 
@@ -95,7 +98,7 @@ class TeamGroupInvitation(models.Model):
             self.teamgroup.name)
 
     def get_absolute_url(self):
-        return reverse('view_teamgroup', args=[str(self.team.id)])
+        return reverse('view_teamgroup', args=[str(self.teamgroup.slug)])
 
     def send(self):
         template_prefix = 'teamgroups/emails/invitation'
