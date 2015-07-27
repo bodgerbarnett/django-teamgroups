@@ -2,6 +2,11 @@ from django.db import models
 from django.utils.crypto import get_random_string
 
 
+class TeamGroupMembershipManager(models.Manager):
+    def active(self):
+        return self.filter(active=True)
+
+
 class TeamGroupInvitationManager(models.Manager):
     def create_invitation(self, teamgroup, inviter, email):
         key = get_random_string(64).lower()

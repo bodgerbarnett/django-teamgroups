@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse_lazy, reverse
 from django.views.generic import FormView
 from django.contrib import messages
+from django.shortcuts import redirect
 
 from guardian.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
@@ -12,7 +13,8 @@ from allauth.account.adapter import get_adapter
 
 from .models import TeamGroup, TeamGroupMembership, TeamGroupInvitation
 from .forms import (
-    TeamGroupCreateForm, TeamGroupUpdateForm, TeamGroupInvitationSendForm)
+    TeamGroupCreateForm, TeamGroupUpdateForm, TeamGroupInvitationSendForm,
+    TeamGroupMembershipUpdateForm)
 
 User = get_user_model()
 
@@ -89,6 +91,37 @@ class TeamGroupLeaveView(SuccessMessageMixin, RedirectView):
         return TeamGroup.objects.get(slug=self.kwargs['slug'])
 
 
+class TeamGroupMembershipUpdateView(
+    PermissionRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = TeamGroupMembership
+    form_class = TeamGroupMembershipUpdateForm
+    context_object_name = 'membership'
+    success_message = 'Updated %(member)s'
+    permission_required = 'teamgroups.change_teamgroup'
+    raise_exception = True
+
+    def get_permission_object(self):
+        return self.get_object().teamgroup
+
+    def get_success_url(self):
+        return self.get_object().teamgroup.get_absolute_url()
+
+    def get_success_message(self, cleaned_data):
+        return self.success_message % dict(
+            cleaned_data, member=self.object.member.get_full_name(),
+            role_name=self.object.get_role_display())
+
+    def form_valid(self, form):
+        if form.cleaned_data['role'] == TeamGroupMembership.ROLE_OWNER:
+            owner = TeamGroupMembership.objects.get(
+                role=TeamGroupMembership.ROLE_OWNER)
+            owner.role = TeamGroupMembership.ROLE_MANAGER
+            owner.save()
+
+        return super(TeamGroupMembershipUpdateView, self).form_valid(form)
+
+
 class TeamGroupInvitationSendView(
     PermissionRequiredMixin, SuccessMessageMixin, FormView
 ):
@@ -117,15 +150,14 @@ class TeamGroupInvitationSendView(
 
 
 class TeamGroupInvitationResendView(
-    LoginRequiredMixin, SuccessMessageMixin, UpdateView
+    LoginRequiredMixin, SuccessMessageMixin, DetailView
 ):
     model = TeamGroupInvitation
-    fields = ['email']
 
     def post(self, request, *args, **kwargs):
         invitation = self.get_object()
-        invitation.send()
-        return super(TeamGroupInvitationResendView, self).post(request, *args, **kwargs)
+        invitation.resend()
+        return redirect(invitation)
 
 
 class TeamGroupInvitationAcceptView(RedirectView):

@@ -7,10 +7,11 @@ from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.template import TemplateDoesNotExist
 from django.core.mail import EmailMultiAlternatives, EmailMessage
+from django.utils.safestring import mark_safe
 
-from guardian.shortcuts import assign_perm
+from guardian.shortcuts import assign_perm, remove_perm
 
-from .managers import TeamGroupInvitationManager
+from .managers import TeamGroupMembershipManager, TeamGroupInvitationManager
 from .signals import invitation_sent
 
 
@@ -41,13 +42,6 @@ class TeamGroup(models.Model):
     def is_member(self, user):
         return user in self.members.all()
 
-    @property
-    def active_members(self):
-        return self.members.filter(teamgroupmembership__active=True)
-
-    def member_role(self, user):
-        return TeamGroupMembership.objects.get(teamgroup=self, member=user).role
-
 
 class TeamGroupMembership(models.Model):
 
@@ -56,34 +50,48 @@ class TeamGroupMembership(models.Model):
     ROLE_OWNER = 'owner'
 
     ROLE_CHOICES = [
-        (ROLE_MEMBER, 'member'),
-        (ROLE_MANAGER, 'manager'),
-        (ROLE_OWNER, 'owner')
+        (ROLE_OWNER, mark_safe('<strong>Owner</strong><br>The person who is\
+            the primary contact for the team group. Owners can modify or\
+            delete the team group.')),
+        (ROLE_MANAGER, mark_safe('<strong>Manager</strong><br>Allowed to\
+            modify the team group.')),
+        (ROLE_MEMBER, mark_safe('<strong>Member</strong><br>Can view the \
+            team group but is not allowed to modify it.'))
     ]
 
-    teamgroup = models.ForeignKey(TeamGroup)
+    teamgroup = models.ForeignKey(TeamGroup, related_name='memberships')
     member = models.ForeignKey(settings.AUTH_USER_MODEL)
     role = models.CharField(
         max_length=20, choices=ROLE_CHOICES, default=ROLE_MEMBER)
     active = models.BooleanField(default=True)
 
+    objects = TeamGroupMembershipManager()
+
     def __unicode__(self):
         return 'TeamGroup: %s, Member: %s, Active: %s' % (
-            self.teamgroup, self.member, self.active)
+            self.teamgroup, self.member.get_full_name(), self.active)
 
     def save(self, *args, **kwargs):
-        if not self.id:
+        if self.active:
             assign_perm('view_teamgroup', self.member, self.teamgroup)
+        else:
+            remove_perm('view_teamgroup', self.member, self.teamgroup)
 
-            if self.role == self.ROLE_OWNER:
-                assign_perm('change_teamgroup', self.member, self.teamgroup)
-                assign_perm('delete_teamgroup', self.member, self.teamgroup)
+        if self.role == self.ROLE_OWNER:
+            assign_perm('change_teamgroup', self.member, self.teamgroup)
+            assign_perm('delete_teamgroup', self.member, self.teamgroup)
+        elif self.role == self.ROLE_MANAGER:
+            assign_perm('change_teamgroup', self.member, self.teamgroup)
+            remove_perm('delete_teamgroup', self.member, self.teamgroup)
+        elif self.role == self.ROLE_MEMBER:
+            remove_perm('change_teamgroup', self.member, self.teamgroup)
+            remove_perm('delete_teamgroup', self.member, self.teamgroup)
 
         super(TeamGroupMembership, self).save(*args, **kwargs)
 
 
 class TeamGroupInvitation(models.Model):
-    teamgroup = models.ForeignKey(TeamGroup)
+    teamgroup = models.ForeignKey(TeamGroup, related_name='invitations')
     email = models.EmailField()
     accepted = models.BooleanField(default=False)
     key = models.CharField(max_length=64, unique=True)
@@ -99,6 +107,11 @@ class TeamGroupInvitation(models.Model):
 
     def get_absolute_url(self):
         return reverse('view_teamgroup', args=[str(self.teamgroup.slug)])
+
+    def resend(self):
+        self.date_invited = timezone.now()
+        self.save()
+        self.send()
 
     def send(self):
         template_prefix = 'teamgroups/emails/invitation'

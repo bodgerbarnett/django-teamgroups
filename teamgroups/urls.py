@@ -5,7 +5,7 @@ from .views import (
     TeamGroupDeleteView, TeamGroupDetailView, TeamGroupLeaveView,
     TeamGroupInvitationSendView, TeamGroupInvitationAcceptView,
     TeamGroupInvitationListView, TeamGroupInvitationDeleteView,
-    TeamGroupInvitationResendView)
+    TeamGroupInvitationResendView, TeamGroupMembershipUpdateView)
 
 
 urlpatterns = patterns(
@@ -22,7 +22,7 @@ urlpatterns = patterns(
         name='create_teamgroup'),
 
     url(
-        r'^(?P<slug>[\w\-]+)/$',
+        r'^view/(?P<slug>[\w\-]+)/$',
         TeamGroupDetailView.as_view(),
         name='view_teamgroup'),
 
@@ -40,6 +40,11 @@ urlpatterns = patterns(
         r'^delete/(?P<slug>[\w\-]+)$',
         TeamGroupDeleteView.as_view(),
         name='delete_teamgroup'),
+
+    url(
+        r'^member/edit/(?P<pk>\w+)$',
+        TeamGroupMembershipUpdateView.as_view(),
+        name='edit_member'),
 
     url(r'^invites/send/(?P<slug>[\w\-]+)/$',
         TeamGroupInvitationSendView.as_view(),
