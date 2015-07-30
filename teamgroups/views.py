@@ -73,11 +73,15 @@ class TeamGroupDeleteView(
     raise_exception = True
 
 
-class TeamGroupLeaveView(SuccessMessageMixin, RedirectView):
+class TeamGroupLeaveView(
+     PermissionRequiredMixin, SuccessMessageMixin, RedirectView
+):
     model = TeamGroup
     url = reverse_lazy('list_teamgroups')
     permanent = False
     success_message = 'You have been removed from %(name)s'
+    permission_required = 'teamgroups.leave_teamgroup'
+    raise_exception = True
 
     def get(self, request, *args, **kwargs):
         membership = TeamGroupMembership.objects.get(
@@ -169,17 +173,23 @@ class TeamGroupInvitationAcceptView(RedirectView):
                 accepted=False,
                 key=self.kwargs['key'].lower())
 
+            if (self.request.user.is_authenticated() and
+                    invitation.email != self.request.user.email):
+                messages.error(
+                    self.request,
+                    'Invitation key does not belong to logged in user')
+
+                return reverse('index')
+
             user = User.objects.get(email=invitation.email)
             invitation.accepted = True
             invitation.save()
 
-            if invitation.teamgroup.is_member(user):
+            if invitation.teamgroup.has_member(user.email):
                 messages.error(
                     self.request, 'You are already a member of this teamgroup')
             else:
-                TeamGroupMembership.objects.create(
-                    teamgroup=invitation.teamgroup, member=user,
-                    role=TeamGroupMembership.ROLE_MEMBER)
+                invitation.teamgroup.add_member(user)
 
                 messages.success(
                     self.request,

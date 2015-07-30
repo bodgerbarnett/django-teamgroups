@@ -51,9 +51,7 @@ class TeamGroupInvitationSendForm(forms.Form):
                 '%(user)s has already been invited to %(teamgroup)s',
                 params={'user': email, 'teamgroup': self.teamgroup})
 
-        if TeamGroup.objects.filter(
-            members__email=email, id=self.teamgroup.id
-        ).exists():
+        if self.teamgroup.has_member(email):
             raise forms.ValidationError(
                 '%(user)s is already a member of this teamgroup',
                 params={'user': email})

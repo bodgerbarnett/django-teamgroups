@@ -25,6 +25,7 @@ class TeamGroup(models.Model):
     class Meta:
         permissions = (
             ('view_teamgroup', 'Can view teamgroup'),
+            ('leave_teamgroup', 'Can leave teamgroup'),
         )
 
     def __unicode__(self):
@@ -33,14 +34,21 @@ class TeamGroup(models.Model):
     def get_absolute_url(self):
         return reverse('view_teamgroup', args=[str(self.slug)])
 
+    def add_member(self, user):
+        membership, created = TeamGroupMembership.objects.get_or_create(
+            teamgroup=self, member=user)
+        membership.active = True
+        membership.save()
+
+    def has_member(self, email):
+        return TeamGroupMembership.objects.filter(
+            member__email=email, teamgroup=self, active=True).exists()
+
     def save(self, *args, **kwargs):
         if not self.id:
             self.slug = slugify(self.name)
 
         super(TeamGroup, self).save(*args, **kwargs)
-
-    def is_member(self, user):
-        return user in self.members.all()
 
 
 class TeamGroupMembership(models.Model):
@@ -80,12 +88,15 @@ class TeamGroupMembership(models.Model):
         if self.role == self.ROLE_OWNER:
             assign_perm('change_teamgroup', self.member, self.teamgroup)
             assign_perm('delete_teamgroup', self.member, self.teamgroup)
+            remove_perm('leave_teamgroup', self.member, self.teamgroup)
         elif self.role == self.ROLE_MANAGER:
             assign_perm('change_teamgroup', self.member, self.teamgroup)
             remove_perm('delete_teamgroup', self.member, self.teamgroup)
+            assign_perm('leave_teamgroup', self.member, self.teamgroup)
         elif self.role == self.ROLE_MEMBER:
             remove_perm('change_teamgroup', self.member, self.teamgroup)
             remove_perm('delete_teamgroup', self.member, self.teamgroup)
+            assign_perm('leave_teamgroup', self.member, self.teamgroup)
 
         super(TeamGroupMembership, self).save(*args, **kwargs)
 
@@ -101,12 +112,18 @@ class TeamGroupInvitation(models.Model):
     objects = TeamGroupInvitationManager()
 
     def __unicode__(self):
-        return '%s has invited you to join %s' % (
-            self.inviter.get_full_name(),
-            self.teamgroup.name)
+        return '%s/%s/%s/%s' % (
+            self.teamgroup, self.email, self.inviter.email,
+            'Accepted' if self.accepted else 'Pending')
 
     def get_absolute_url(self):
         return reverse('view_teamgroup', args=[str(self.teamgroup.slug)])
+
+    @property
+    def description(self):
+        return '%s has invited you to join %s' % (
+            self.inviter.get_full_name(),
+            self.teamgroup.name)
 
     def resend(self):
         self.date_invited = timezone.now()
